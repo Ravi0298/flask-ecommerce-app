@@ -8,9 +8,8 @@ APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(APP_DIR, "crud.db")
 
 app = Flask(__name__)
-app.secret_key = "replace-this-with-a-secure-random-string"  # CHANGE for production
+app.secret_key = "ecommerce1233344"
 
-# ----------------- Database helpers -----------------
 def get_db():
     db = getattr(g, "_database", None)
     if db is None:
@@ -27,7 +26,6 @@ def close_connection(exception):
 def init_db(seed_admin=True):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-
     c.execute("""
     CREATE TABLE IF NOT EXISTS Users_Table (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,7 +34,6 @@ def init_db(seed_admin=True):
         role TEXT NOT NULL DEFAULT 'user'
     )
     """)
-
     c.execute("""
     CREATE TABLE IF NOT EXISTS Products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,11 +45,8 @@ def init_db(seed_admin=True):
         updated_at TEXT
     )
     """)
-
     conn.commit()
-
     if seed_admin:
-        # Insert admin if not exists (email: admin@example.com, password: admin123)
         admin_email = "admin@example.com"
         admin_pwd = "admin123"
         hashed = generate_password_hash(admin_pwd)
@@ -60,17 +54,12 @@ def init_db(seed_admin=True):
             c.execute("INSERT INTO Users_Table (email, password, role) VALUES (?, ?, ?)",
                       (admin_email, hashed, "admin"))
             conn.commit()
-            print("Seeded admin user -> email: admin@example.com password: admin123")
         except sqlite3.IntegrityError:
-            # already exists
             pass
-
     conn.close()
 
-# initialize DB (on first run)
 init_db()
 
-# ----------------- Helpers -----------------
 def query_user_by_email(email):
     db = get_db()
     return db.execute("SELECT * FROM Users_Table WHERE email = ?", (email,)).fetchone()
@@ -95,32 +84,25 @@ def admin_required(func):
         return func(*args, **kwargs)
     return wrapper
 
-# ----------------- Routes -----------------
 @app.route("/")
 def root():
-    # direct to login if not logged in, else products
     if "user" in session:
         return redirect(url_for("products"))
     return redirect(url_for("login"))
 
-# ----- Register -----
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if "user" in session:
         return redirect(url_for("products"))
-
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "").strip()
-
         if not email or not password:
             flash("Please provide both email and password.", "warning")
             return redirect(url_for("register"))
-
         if query_user_by_email(email):
             flash("Email already registered. Please login.", "danger")
             return redirect(url_for("login"))
-
         hashed = generate_password_hash(password)
         db = get_db()
         db.execute("INSERT INTO Users_Table (email, password, role) VALUES (?, ?, ?)",
@@ -128,40 +110,31 @@ def register():
         db.commit()
         flash("Registration successful. Please log in.", "success")
         return redirect(url_for("login"))
-
     return render_template("register.html")
 
-# ----- Login -----
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if "user" in session:
         return redirect(url_for("products"))
-
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "").strip()
-
         user = query_user_by_email(email)
         if not user or not check_password_hash(user["password"], password):
             flash("Invalid email or password.", "danger")
             return redirect(url_for("login"))
-
-        # Set session
         session["user"] = user["email"]
         session["role"] = user["role"]
         flash(f"Welcome back, {user['email']}!", "success")
         return redirect(url_for("products"))
-
     return render_template("login.html")
 
-# ----- Logout -----
 @app.route("/logout")
 def logout():
     session.clear()
     flash("You have been logged out.", "info")
     return redirect(url_for("login"))
 
-# ----- Products: list (all users) -----
 @app.route("/products")
 @login_required
 def products():
@@ -169,7 +142,6 @@ def products():
     rows = db.execute("SELECT * FROM Products ORDER BY created_at DESC").fetchall()
     return render_template("products.html", products=rows)
 
-# ----- Add product (admin) -----
 @app.route("/products/add", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -179,18 +151,15 @@ def add_product():
         description = request.form.get("description", "").strip()
         price = request.form.get("price", "").strip()
         stock = request.form.get("stock", "").strip()
-
         if not name or price == "" or stock == "":
             flash("Please fill required fields (name, price, stock).", "warning")
             return redirect(url_for("add_product"))
-
         try:
             price_f = float(price)
             stock_i = int(stock)
         except ValueError:
             flash("Price must be a number and stock must be an integer.", "warning")
             return redirect(url_for("add_product"))
-
         now = datetime.utcnow().isoformat()
         db = get_db()
         db.execute("""INSERT INTO Products
@@ -200,10 +169,8 @@ def add_product():
         db.commit()
         flash("Product added successfully.", "success")
         return redirect(url_for("products"))
-
     return render_template("product_form.html", action="Add", product=None)
 
-# ----- Edit product (admin) -----
 @app.route("/products/edit/<int:product_id>", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -213,24 +180,20 @@ def edit_product(product_id):
     if not product:
         flash("Product not found.", "danger")
         return redirect(url_for("products"))
-
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         description = request.form.get("description", "").strip()
         price = request.form.get("price", "").strip()
         stock = request.form.get("stock", "").strip()
-
         if not name or price == "" or stock == "":
             flash("Please fill required fields (name, price, stock).", "warning")
             return redirect(url_for("edit_product", product_id=product_id))
-
         try:
             price_f = float(price)
             stock_i = int(stock)
         except ValueError:
             flash("Price must be a number and stock must be an integer.", "warning")
             return redirect(url_for("edit_product", product_id=product_id))
-
         now = datetime.utcnow().isoformat()
         db.execute("""UPDATE Products SET name=?, description=?, price=?, stock=?, updated_at=?
                       WHERE id=?""",
@@ -238,10 +201,8 @@ def edit_product(product_id):
         db.commit()
         flash("Product updated.", "success")
         return redirect(url_for("products"))
-
     return render_template("product_form.html", action="Edit", product=product)
 
-# ----- Delete product (admin) -----
 @app.route("/products/delete/<int:product_id>", methods=["POST"])
 @login_required
 @admin_required
@@ -252,7 +213,6 @@ def delete_product(product_id):
     flash("Product deleted.", "success")
     return redirect(url_for("products"))
 
-# ----- Product details (optional) -----
 @app.route("/products/<int:product_id>")
 @login_required
 def product_detail(product_id):
@@ -263,6 +223,5 @@ def product_detail(product_id):
         return redirect(url_for("products"))
     return render_template("product_detail.html", product=product)
 
-# ----------------- Run -----------------
 if __name__ == "__main__":
     app.run(debug=True)
