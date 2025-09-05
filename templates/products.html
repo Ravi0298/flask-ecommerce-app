@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Products{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="fw-bold mb-0 text-primary">
+    <i class="bi bi-bag me-2"></i> Products
+  </h3>
+  {% if session.role == 'admin' %}
+    <a href="{{ url_for('add_product') }}" class="btn btn-primary rounded-pill px-3 shadow-sm">
+      <i class="bi bi-plus-circle me-1"></i> Add Product
+    </a>
+  {% endif %}
+</div>
+
+{% if products|length == 0 %}
+  <div class="card shadow-sm border-0 rounded-4 p-4 text-center">
+    <p class="text-muted mb-0">
+      No products yet. 
+      {% if session.role == 'admin' %}<a href="{{ url_for('add_product') }}" class="fw-semibold text-decoration-none">Add one now!</a>{% endif %}
+    </p>
+  </div>
+{% else %}
+<div class="row g-4">
+  {% for p in products %}
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm border-0 rounded-4">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title fw-semibold text-dark mb-2">{{ p.name }}</h5>
+          <p class="card-text text-muted small flex-grow-1">{{ p.description or 'No description' }}</p>
+          <p class="mb-3">
+            <span class="fw-bold text-success">₹{{ '%.2f'|format(p.price) }}</span> 
+            <span class="text-muted">• Stock: {{ p.stock }}</span>
+          </p>
+          <div class="d-flex flex-wrap gap-2 mt-auto">
+            <a href="{{ url_for('product_detail', product_id=p.id) }}" 
+               class="btn btn-sm btn-outline-primary rounded-pill px-3">
+              <i class="bi bi-eye"></i> View
+            </a>
+            {% if session.role == 'admin' %}
+              <a href="{{ url_for('edit_product', product_id=p.id) }}" 
+                 class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-pencil-square"></i> Edit
+              </a>
+              <form action="{{ url_for('delete_product', product_id=p.id) }}" 
+                    method="POST" class="d-inline">
+                <button class="btn btn-sm btn-outline-danger rounded-pill px-3" 
+                        onclick="return confirm('Delete this product?')">
+                  <i class="bi bi-trash"></i> Delete
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height:72vh;">
+  <div class="card card-ui p-4" style="width:420px;">
+    
+    <div class="text-center mb-3">
+      <div class="rounded-circle d-flex justify-content-center align-items-center mx-auto" 
+           style="width:70px; height:70px; background:#e9f2ff;">
+        <i class="bi bi-person-plus" style="font-size:2.5rem; color:#198754;"></i>
+      </div>
+    </div>
+    
+    <h4 class="mb-3 text-center"><i class="bi bi-person-plus"></i> Register</h4>
+    
+    <form method="POST">
+      <div class="mb-3">
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+          <input type="email" name="email" class="form-control" placeholder="Email" required>
+        </div>
+      </div>
+      <div class="mb-3">
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock"></i></span>
+          <input type="password" name="password" class="form-control" placeholder="Password" required>
+        </div>
+      </div>
+      <button class="btn btn-success w-100 btn-custom">Create account</button>
+    </form>
+    
+    <p class="text-center mt-3 small">
+      Already have an account? <a href="{{ url_for('login') }}">Login</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
